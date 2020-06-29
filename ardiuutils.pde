@@ -1,4 +1,4 @@
-String toCSV(byte[] file) {
+String toCSV(byte[] file, DataPoint[] flight) {
   String out = "";
   
   int fileVersion = b2i(file, 0); // check the version header
@@ -6,6 +6,7 @@ String toCSV(byte[] file) {
    case 3:
     out += "Time (ms),Altitude (m),Acceleration X (G),Acceleration Y (G),Acceleration Z (G),Tilt (rad),Battery voltage (V),Liftoff,Burnout,Apogee,Continuity,IMU/SD/Baro\n";
     for(int filePos = 4; filePos < file.length-27; filePos += 28) {
+      DataPoint frame = new DataPoint();
       int time = b2i(file, filePos); // read the time
       int state = b2i(file, filePos+4);
       float voltage = (state & 255) / 16.0;
@@ -43,6 +44,8 @@ String toCSV(byte[] file) {
       byte[] tiltBytes = new byte[4]; // read the acceleration
       arrayCopy(file, filePos+24, tiltBytes, 0, 4);
       float tilt = byteArrayToFloat(tiltBytes);
+      
+    //  flight = (DataPoint[]) append(flight, frame);
       out += time+","+alt+","+accX+","+accY+","+accZ+","+tilt+","+voltage+","+liftoff+","+burnout+","+apogee+","+cont+","+system+"\n"; // write it all to the file
     }
     break;
