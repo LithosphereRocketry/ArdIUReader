@@ -14,7 +14,7 @@ String pathToCard() {
   File f;
   
   String os = getOS();
-  println(os);
+  //println(os);
   if(os.contains("Windows")) {
     char d = 'C';
     do {

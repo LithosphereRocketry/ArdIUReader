@@ -1,3 +1,5 @@
+final String csvHeader = "Time (ms),Altitude (m),Acceleration X (G),Acceleration Y (G),Acceleration Z (G),Tilt (rad),Battery voltage (V),Liftoff,Burnout,Apogee,Continuity,IMU/SD/Baro\n";
+
 class DataPoint {
   int time;
   float alt;
@@ -26,6 +28,7 @@ class DataPoint {
       if(data.length >= 28) {
         time = b2i(data, 0); // read the time
         int state = b2i(data, 4);
+        
         voltage = (state & 255) / 16.0;
         for(int i = 0; i < 8; i++) {
           cont[i] = (state & (1 << 8+i)) > 0;
@@ -117,11 +120,20 @@ class DataPoint {
     if(isIMU) { system += 'Y'; } else { system += 'n'; } 
     if(isSD) { system += 'Y'; } else { system += 'n'; }
     if(isBaro) { system += 'Y'; } else { system += 'n'; }
-    line += time+","+alt+","+accel.x+","+accel.y+","+accel.z+","+tilt+","+voltage+","+liftoff+","+burnout+","+apogee+","+cont+","+system+"\n";
+    line += time+","+alt+","+accel.x+","+accel.y+","+accel.z+","+tilt+","+voltage+","+liftoff+","+burnout+","+apogee+","+contStr+","+system+"\n";
     
     return line;
   }
-  String csvHeader() {
-    return "Time (ms),Altitude (m),Acceleration X (G),Acceleration Y (G),Acceleration Z (G),Tilt (rad)\n";
+  float getValue(String column) {
+    switch(column.toLowerCase()) {
+     case "time": return time;
+     case "alt": return alt;
+     case "accx": return accel.x;
+     case "accy": return accel.y;
+     case "accz": return accel.z;
+     case "tilt": return tilt;
+     default:
+      return -1;
+    }
   }
 }

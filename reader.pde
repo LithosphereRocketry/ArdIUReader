@@ -21,7 +21,9 @@ final String s = java.io.File.separator;
 boolean canWrite = false;
 File g;
 
-void setup() {
+DataPoint[][] charts = new DataPoint[0][100];
+
+void load() {
   drv = pathToCard();
   
   if(getOS().contains("Android")) {
@@ -40,12 +42,22 @@ void setup() {
       println("\"Processed\" folder located");
     }
     for(int fileNum = 0; fileNum < 100; fileNum++) { // For each possible file number...
+      charts = (DataPoint[][]) append(charts, new DataPoint[0]);
       File f = new File(drv+s+"flight"+fileNum+".aiu");
       if(f.exists()) { // Does it exist?
         PrintWriter target = createWriter(pathToWrite()+s+"flight"+fileNum+".csv");
-        target.print(toCSV(loadBytes(f.getAbsolutePath()), null)); // If so load it
-     //   println(toCSV(loadBytes(f.getAbsolutePath())));
-        
+     
+        String out = csvHeader;
+        byte[] file = loadBytes(f.getAbsolutePath());
+        int fileVersion = b2i(file, 0); // check the version header
+        for(int i = 4; i < file.length-lineSizes[fileVersion]+1; i += lineSizes[fileVersion]) {
+          byte[] line = new byte[lineSizes[fileVersion]];
+          arrayCopy(file, i, line, 0, lineSizes[fileVersion]);
+          DataPoint lineObject = new DataPoint();
+          lineObject.read(line, fileVersion);
+          out += lineObject.csv();
+          charts[fileNum] = (DataPoint[]) append(charts[fileNum], lineObject);
+        } // If so load it
         target.flush();
         target.close();
         println("Processed file "+f.getAbsolutePath()+" to "+g.getAbsolutePath()+s+"flight"+fileNum+".csv");
@@ -54,5 +66,8 @@ void setup() {
   } else { // We didn't find a drive
     println("No recognized drive found.");
   }
-  exit();
+}
+
+void draw() {
+  graph(0, 0, width, height, charts[0], "time", "alt");
 }
