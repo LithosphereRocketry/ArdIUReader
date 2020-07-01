@@ -1,29 +1,28 @@
-public float byteArrayToFloat(byte test[]) { 
-    int MASK = 0xff; 
-    int bits = 0; 
-    int i = 3; 
-    for (int shifter = 3; shifter >= 0; shifter--) { 
-    bits |= ((int) test[i] & MASK) << (shifter * 8); 
-    i--; 
-    } 
-    return Float.intBitsToFloat(bits); 
-} // Credit for conversion script cadomanis of the Processing Forum. 
-
-int b2i(byte[] from, int offs) {
-  return ( from[offs    ] & 0xff       ) |
-         ((from[offs + 1] & 0xff) <<  8) |
-         ((from[offs + 2] & 0xff) << 16) |
-         ((from[offs + 3] & 0xff)  << 24);
-} // this one subpixel of the Processing Forum.
-
 String drv = "none";
 final String s = java.io.File.separator;
 boolean canWrite = false;
 File g;
 
-DataPoint[][] charts = new DataPoint[0][100];
+//DataPoint[][] charts = new DataPoint[0][100];
+Table[] charts = new Table[100];
 
 void load() {
+  textAlign(CENTER, CENTER);
+  units = new Table();
+  TableRow names = units.addRow();
+  units.addColumn("Time");
+  names.setString("Time", "s");
+  units.addColumn("Altitude");
+  names.setString("Altitude", "m");
+  units.addColumn("Acceleration X");
+  names.setString("Acceleration X", "g");
+  units.addColumn("Acceleration Y");
+  names.setString("Acceleration Y", "g");
+  units.addColumn("Acceleration Z");
+  names.setString("Acceleration Z", "g");
+  units.addColumn("Tilt");
+  names.setString("Tilt", "rad");
+  
   drv = pathToCard();
   
   if(getOS().contains("Android")) {
@@ -42,32 +41,67 @@ void load() {
       println("\"Processed\" folder located");
     }
     for(int fileNum = 0; fileNum < 100; fileNum++) { // For each possible file number...
-      charts = (DataPoint[][]) append(charts, new DataPoint[0]);
-      File f = new File(drv+s+"flight"+fileNum+".aiu");
-      if(f.exists()) { // Does it exist?
-        PrintWriter target = createWriter(pathToWrite()+s+"flight"+fileNum+".csv");
-     
-        String out = csvHeader;
-        byte[] file = loadBytes(f.getAbsolutePath());
-        int fileVersion = b2i(file, 0); // check the version header
-        for(int i = 4; i < file.length-lineSizes[fileVersion]+1; i += lineSizes[fileVersion]) {
-          byte[] line = new byte[lineSizes[fileVersion]];
-          arrayCopy(file, i, line, 0, lineSizes[fileVersion]);
-          DataPoint lineObject = new DataPoint();
-          lineObject.read(line, fileVersion);
-          out += lineObject.csv();
-          charts[fileNum] = (DataPoint[]) append(charts[fileNum], lineObject);
-        } // If so load it
-        target.flush();
-        target.close();
-        println("Processed file "+f.getAbsolutePath()+" to "+g.getAbsolutePath()+s+"flight"+fileNum+".csv");
-      }
     }
   } else { // We didn't find a drive
     println("No recognized drive found.");
   }
 }
 
+boolean loaded;
+int fileNum;
+String columnName = "Acceleration Y";
 void draw() {
-  graph(0, 0, width, height, charts[0], "time", "alt");
+  background(255);
+  fill(0);
+  if(drv != "none") {
+    if(!loaded) {
+      frameRate(10000);
+      text("Loading...", width/2, height/2);
+      fill(255, 0, 0);
+      rect(0, height*.9, width*fileNum/100, height*.1);
+      
+      File f = new File(drv+s+"flight"+fileNum+".aiu");
+      if(f.exists()) { // Does it exist
+        PrintWriter target = createWriter(pathToWrite()+s+"flight"+fileNum+".csv");
+        byte[] file = loadBytes(f.getAbsolutePath());
+        charts[fileNum] = logFromSource(file);
+        
+        target.print(logToCSV(charts[fileNum]));
+        target.flush();
+        target.close();
+        println("Processed file "+f.getAbsolutePath()+" to "+g.getAbsolutePath()+s+"flight"+fileNum+".csv");
+      }
+      fileNum++;
+      if(fileNum > 99) {
+        fileNum = 11;
+        loaded = true;
+//        logToGraph(flights[fileNum], "Time", "Altitude");
+      }
+    } else {
+      frameRate(60);
+      text("flight"+fileNum+".aiu\n"+columnName, width/2, height/10);
+   //   println(graphs[fileNum].getYData());
+      XYChart graph = logToGraph(charts[fileNum], "Time", columnName);
+      graph.showXAxis(true);
+      graph.showYAxis(true);
+      graph.setLineWidth(2);
+      graph.draw(10, 10, (width - (width-height)/2)-20, height-20);
+      fill(200);
+      triangle(width-(width-height)*1/4, height*1/12,
+               width-(width-height)*1/8, height*3/12,
+               width-(width-height)*3/8, height*3/12);
+      triangle(width-(width-height)*1/4, height*11/12,
+               width-(width-height)*1/8, height*9/12,
+               width-(width-height)*3/8, height*9/12);
+      rect(width - (width-height)*3/8, height/2 - (width-height)*1/8, (width-height)*1/4, (width-height)*1/4);
+      for(float time : getTransition(charts[fileNum], "Time", "Burnout")) {
+        PVector min = graph.getDataToScreen(new PVector(time, graph.getMinY()));
+        PVector max = graph.getDataToScreen(new PVector(time, graph.getMaxY()));
+        line(min.x, min.y, max.x, max.y);
+      }
+    }
+  } else {
+    fill(0);
+    text("No files detected", width/2, height/2);
+  }
 }
