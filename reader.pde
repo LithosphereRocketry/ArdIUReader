@@ -49,7 +49,7 @@ void load() {
 
 boolean loaded;
 int fileNum;
-String columnName = "Acceleration Y";
+String columnName = "Altitude";
 void draw() {
   background(255);
   fill(0);
@@ -73,7 +73,7 @@ void draw() {
       }
       fileNum++;
       if(fileNum > 99) {
-        fileNum = 11;
+        fileNum = 0;
         loaded = true;
 //        logToGraph(flights[fileNum], "Time", "Altitude");
       }
