@@ -67,8 +67,7 @@ void draw() {
         PrintWriter target = createWriter(pathToWrite()+s+"flight"+fileNum+".csv");
         byte[] file = loadBytes(f.getAbsolutePath());
         charts[fileNum] = logFromSource(file);
-        
-        target.print(logToCSV(charts[fileNum]));
+        logToCSV(target, charts[fileNum]);
         target.flush();
         target.close();
         println("Processed file "+f.getAbsolutePath()+" to "+g.getAbsolutePath()+s+"flight"+fileNum+".csv");
@@ -87,7 +86,6 @@ void draw() {
       graph.showXAxis(true);
       graph.showYAxis(true);
       graph.setLineWidth(2);
-      //println(graph);
       graph.draw(10, 10, (width - (width-height)/2)-20, height-20);
       fill(200);
       triangle(width-(width-height)*1/4, height*1/12,
@@ -140,7 +138,6 @@ void mousePressed() {
       int index = units.getColumnIndex(columnName);
       int newIndex = (index % (columns.length-1)) + 1; // wrap the last column back to the first, then shift right by 1 so we never see the 1st column (time)
       columnName = columns[newIndex];
-      println(columnName);
     }
   }
 }

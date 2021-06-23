@@ -13,9 +13,7 @@ import org.gicentre.utils.io.*;
 
 Table logFromSource(byte[] source) {
   Table tgt = new Table();
-  
   int version = b2i(source, 0);
-  
   switch(version) {
    case 3:
     tgt.addColumn("Time");
@@ -32,8 +30,8 @@ Table logFromSource(byte[] source) {
     tgt.addColumn("IMU OK");
     tgt.addColumn("SD OK");
     tgt.addColumn("Baro OK");
-    
-    for(int filePos = 4; filePos < source.length-27; filePos += 28) {
+    println(source.length);
+    for(int filePos = 4; filePos < source.length-27 && filePos < 28*5000; filePos += 28) {
       TableRow row = tgt.addRow();
       
       float time = b2i(source, filePos) / 1000.0; // read the time
@@ -55,28 +53,27 @@ Table logFromSource(byte[] source) {
       byte[] altBytes = new byte[4]; // read the altitude
       arrayCopy(source, filePos+8, altBytes, 0, 4);
       float alt = byteArrayToFloat(altBytes);
-      row.setFloat("Altitude", alt);
+      row.setFloat("Altitude", zeroNaN(alt));
       
       byte[] accXBytes = new byte[4]; // read the acceleration x
       arrayCopy(source, filePos+12, accXBytes, 0, 4);
       float accX = byteArrayToFloat(accXBytes);
-      row.setFloat("Acceleration X", accX);
+      row.setFloat("Acceleration X", zeroNaN(accX));
       
       byte[] accYBytes = new byte[4]; // read the acceleration y
       arrayCopy(source, filePos+16, accYBytes, 0, 4);
       float accY = byteArrayToFloat(accYBytes);
-      row.setFloat("Acceleration Y", accY);
+      row.setFloat("Acceleration Y", zeroNaN(accY));
       
       byte[] accZBytes = new byte[4]; // read the acceleration z
       arrayCopy(source, filePos+20, accZBytes, 0, 4); 
       float accZ = byteArrayToFloat(accZBytes);
-      row.setFloat("Acceleration Z", accZ);
+      row.setFloat("Acceleration Z", zeroNaN(accZ));
       
       byte[] tiltBytes = new byte[4]; // read the tilt
       arrayCopy(source, filePos+24, tiltBytes, 0, 4);
       float tilt = byteArrayToFloat(tiltBytes);
-      row.setFloat("Tilt", tilt);
-  //    println(tilt);
+      row.setFloat("Tilt", zeroNaN(tilt));
     }
     break;
    case 2:
@@ -173,14 +170,16 @@ XYChart logToGraph(Table data, String xIndex, String yIndex) {
   XYChart graph = new XYChart(this);
   float[] xPts = data.getFloatColumn(xIndex);
   float[] yPts = data.getFloatColumn(yIndex);
+  println(xPts.length);
   graph.setData(xPts, yPts);
   graph.setXFormat("########## "+units.getString(0, xIndex));
   graph.setYFormat("########## "+units.getString(0, yIndex));
   return graph;
 }
 
-String logToCSV(Table data) {
-  String out = "Time (ms),Altitude (m),Acceleration X (G),Acceleration Y (G),Acceleration Z (G),Tilt (rad),Battery voltage (V),Liftoff,Burnout,Apogee,Continuity,IMU/SD/Baro\n";
+void logToCSV(PrintWriter target, Table data) {
+  println("start "+millis());
+  target.print("Time (ms),Altitude (m),Acceleration X (G),Acceleration Y (G),Acceleration Z (G),Tilt (rad),Battery voltage (V),Liftoff,Burnout,Apogee,Continuity,IMU/SD/Baro\n");
   for(TableRow row : data.rows()) {
     String contStr = "";
     for(int i = 0; i < 8; i++) {
@@ -195,16 +194,15 @@ String logToCSV(Table data) {
     if(row.getInt("SD OK") > 0) { system += 'Y'; } else { system += 'n'; }
     if(row.getInt("Baro OK") > 0) { system += 'Y'; } else { system += 'n'; }
     
-    out += row.getFloat("Time")+","+
+    target.print(row.getFloat("Time")+","+
            row.getFloat("Altitude")+","+
            row.getFloat("Acceleration X")+","+row.getFloat("Acceleration Y")+","+row.getFloat("Acceleration Z")+","+
            row.getFloat("Tilt")+","+
            row.getFloat("Battery Voltage")+","+
            (row.getFloat("Liftoff")>0)+","+(row.getFloat("Burnout")>0)+","+(row.getFloat("Apogee")>0)+","+
-           contStr+","+system+"\n";
+           contStr+","+system+"\n");
+    
   }
-  
-  return out;
 }
 float[] getTransition(Table data, String x, String state) {
   float[] t = new float[0];

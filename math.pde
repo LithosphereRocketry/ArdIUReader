@@ -15,3 +15,11 @@ int b2i(byte[] from, int offs) {
          ((from[offs + 2] & 0xff) << 16) |
          ((from[offs + 3] & 0xff) << 24);
 } // this one subpixel of the Processing Forum.
+
+float zeroNaN(float in) {
+  if(Float.isNaN(in)) {
+    return 0;
+  } else {
+    return in;
+  }
+}
